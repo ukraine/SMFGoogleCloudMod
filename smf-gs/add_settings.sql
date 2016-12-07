@@ -1,0 +1,1 @@
+INSERT IGNORE INTO {db_prefix}settings (variable, value) VALUES ('gsServiceAccountName', ''), ('gsKey', '');

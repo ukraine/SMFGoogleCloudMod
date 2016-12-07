@@ -1,0 +1,164 @@
+<?xml version="1.0"?>
+<!DOCTYPE modification SYSTEM "http://www.simplemachines.org/xml/modification">
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+	ATTENTION: If you are trying to install this manually, you should try
+	the package manager.  If it will not work for you, please take a look
+	at the following for information on this format:
+		http://www.simplemachines.org/redirect/manual_mod_install
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<modification xmlns="http://www.simplemachines.org/xml/modification" xmlns:smf="http://www.simplemachines.org/">
+	<id>yr:gs-driver</id>
+	<version>1.0</version>
+
+	<file name="$sourcedir/Display.php">
+		<operation>
+			<search position="before"><![CDATA[$filename = getAttachmentFilename($real_filename, $_REQUEST['attach'], $id_folder, false, $file_hash);]]></search>
+			<add><![CDATA[
+				// GS: redirect to signed url if it's not an image.
+				if (strpos($filename, 'gs://') === 0) {
+				    $utf8name = !$context['utf8'] && function_exists('iconv') ? iconv($context['character_set'], 'UTF-8', $real_filename) : (!$context['utf8'] && function_exists('mb_convert_encoding') ? mb_convert_encoding($real_filename, 'UTF-8', $context['character_set']) : $real_filename);
+				    $disposition = !isset($_REQUEST['image']) ? 'attachment' : 'inline';
+				    $contentDisposition = $disposition . '; filename="' . $utf8name . '"';
+				    $signedUrl = GstorageStreamWrapper::getClient()->createSignedLinkFromPath($filename, $contentDisposition);
+				    header('Location: ' . $signedUrl);
+				    obExit(false);
+				    return;
+				}
+			]]></add>
+		</operation>
+	</file>
+
+	<file name="$sourcedir/ManageAttachments.php">
+		<operation>
+			<search position="before"><![CDATA[array('text', 'attachmentThumbHeight', 6),]]></search>
+			<add><![CDATA[
+				'',
+					array('warning', GstorageStreamWrapper::isRegistered() ? '' : 'gsNotRegisteredWarning'),
+			        array('text', 'gsServiceAccountName', 40),
+			        array('callback', 'gsKey'),
+			]]></add>
+		</operation>
+	</file>
+
+	<file name="$sourcedir/ManageServer.php">
+		<operation>
+			<search position="before" whitespace="loose"><![CDATA[// Permissions?
+ 		elseif ($var[0] == 'permissions')
+ 			$inlinePermissions[] = $var[1];]]></search>
+			<add><![CDATA[
+				// Google Cloud Key File?
+			    elseif($var[0] == 'callback' && $var[1] == 'gsKey') {
+			        if (isset($_FILES['gsKey_file']) && is_uploaded_file($_FILES['gsKey_file']['tmp_name'])) {
+			            $setArray['gsKey'] = base64_encode(file_get_contents($_FILES['gsKey_file']['tmp_name']));
+			            unset($_FILES['gsKey_file']);
+			            unset($_POST['gsKey']);
+			        }
+			    }
+			]]></add>
+		</operation>
+	</file>
+
+	<file name="$sourcedir/Subs-Graphics.php">
+		<operation>
+			<search position="before"><![CDATA[<?php]]></search>
+			<add><![CDATA[
+				// GS: GD image*() functions fix.
+				function savepng($img, $fname)
+				{
+				    ob_start();
+				    imagepng($img);
+				    file_put_contents($fname, ob_get_contents(), FILE_BINARY);
+				    ob_end_clean();
+				}
+				function savejpeg($img, $fname)
+				{
+				    ob_start();
+				    imagejpeg($img);
+				    file_put_contents($fname, ob_get_contents(), FILE_BINARY);
+				    ob_end_clean();
+				}
+				function savegif($img, $fname)
+				{
+				    ob_start();
+				    imagegif($img);
+				    file_put_contents($fname, ob_get_contents(), FILE_BINARY);
+				    ob_end_clean();
+				}
+			]]></add>
+		</operation>
+		<operation>
+			<search position="replace"><![CDATA[imagepng($dst_img, $destName)]]></search>
+			<add><![CDATA[savepng($dst_img, $destName)]]></add>
+		</operation>
+		<operation>
+			<search position="replace"><![CDATA[imagejpeg($dst_img, $destName)]]></search>
+			<add><![CDATA[savejpeg($dst_img, $destName)]]></add>
+		</operation>
+		<operation>
+			<search position="replace"><![CDATA[imagegif($dst_img, $destName)]]></search>
+			<add><![CDATA[savegif($dst_img, $destName)]]></add>
+		</operation>
+	</file>
+
+	<file name="$themedir/Admin.template.php">
+		<operation>
+			<search position="after" whitespace="loose"><![CDATA[// This is the administration center home.
+function template_admin()]]></search>
+			<add><![CDATA[
+				function template_callback_gsKey()
+				{
+					global $txt, $modSettings;
+					echo '<dt>', $txt['gsKey'], '</dt>
+				            <dd>';
+				    echo '<input type="file" name="gsKey_file" id="gsKey_file"/>';
+				    echo '<input type="hidden" name="gsKey" id="gsKey" value=""/>'; // Placeholder for seveDBSettings() function.
+				    if (isset($modSettings['gsKey']) && $modSettings['gsKey'])
+				        echo "<br/><small>({$txt['gsKeyIsLoaded']})</small>";
+				    echo '</dd>';
+				}
+			]]></add>
+		</operation>
+		<operation>
+			<search position="before"><![CDATA[<form action="', $context['post_url'], '" method="post" accept-charset="', $context['character_set'], '"', !empty($context['force_form_onsubmit']) ? ' onsubmit="' . $context['force_form_onsubmit'] . '"' : '',]]></search>
+			<add><![CDATA[
+				' enctype="multipart/form-data" ', // Needed for gsKey upload.
+			]]></add>
+		</operation>
+	</file>
+
+	<file name="$languagedir/Admin.english.php">
+		<operation>
+			<search position="before"><![CDATA[$txt['attachmentThumbHeight'] = 'Maximum height of thumbnails';]]></search>
+			<add><![CDATA[
+				$txt['gsServiceAccountName'] = 'Google Storage Account Name';
+				$txt['gsKey'] = 'Google Storage P12 key';
+				$txt['gsKeyIsLoaded'] = 'Key is loaded';
+				$txt['gsNotRegisteredWarning'] = 'Google Cloud Storage wrapper is not properly configured!';
+			]]></add>
+		</operation>
+	</file>
+
+	<file name="$boarddir/index.php">
+		<operation>
+			<search position="before" whitespace="loose"><![CDATA[cleanRequest();
+$context = array();]]></search>
+			<add><![CDATA[
+				// GOOGLE
+				require_once $sourcedir . '/Google/autoload.php';
+				require_once $sourcedir . '/Gstorage/GstorageStreamWrapper.php';
+				require_once $sourcedir . '/Gstorage/GstorageClient.php';
+				try {
+				    $gsClient = new GstorageClient();
+				    GstorageStreamWrapper::register($gsClient);
+				} catch(Exception $e) {
+				    // TODO: do something, Google Cloud misconfigured!
+				}
+				// END GOOGLE
+			]]></add>
+		</operation>
+	</file>
+
+</modification>

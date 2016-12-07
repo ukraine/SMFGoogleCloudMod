@@ -1,0 +1,11 @@
+*******************************
+* Name : Google Cloud Storage driver
+* Version : 1.0
+* Author : Yarovoy Roman
+* Support : http://yarovoy.me
+*******************************
+
+This mod contains:
+ * gs:// stream wrapper
+ * serving attaches through signed urls (with expiration period)
+ * appropriate Google Cloud Storage configuration form

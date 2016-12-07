@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!DOCTYPE package-info SYSTEM "http://www.simplemachines.org/xml/package-info">
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+	ATTENTION: If you are trying to install this manually, you should try
+	the package manager.  If it will not work for you, please take a look
+	at the following for information on this format:
+		http://www.simplemachines.org/redirect/manual_mod_install
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<package-info xmlns="http://www.simplemachines.org/xml/package-info" xmlns:smf="http://www.simplemachines.org/">
+
+	<id>yr:gs-driver</id>
+	<version>1.0</version>
+	<name>Google Cloud Storage driver</name>
+	<type>modification</type>
+
+	<install>
+		<readme type="file">readme.txt</readme>
+		<modification format="xml" type="file">install.xml</modification>
+    	<require-dir name="Google" destination="$sourcedir" />
+    	<require-dir name="Gstorage" destination="$sourcedir" />
+    	<database type="file">add_settings.sql</database>
+	</install>
+
+	<uninstall>
+		<readme type="file">readme.txt</readme>
+		<modification format="xml" type="file" reverse="true">install.xml</modification>
+    	<remove-dir name="Google" />
+    	<remove-dir name="Gstorage" />
+	</uninstall>
+
+</package-info>
